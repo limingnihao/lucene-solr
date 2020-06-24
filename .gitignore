@@ -37,3 +37,7 @@ build/
 
 # Ignore the generated local settings file.
 gradle.properties
+solr/solr-ref-guide/*
+*.classpath
+*.project
+.settings

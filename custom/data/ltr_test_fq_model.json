@@ -1,0 +1,27 @@
+{
+    "store": "custom_test_fq_feature",
+    "name": "custom_test_fq_model",
+    "class": "org.apache.solr.ltr.model.MultipleAdditiveTreesModel",
+    "features": [
+        {
+            "name": "feature_level_fq"
+        }
+    ],
+    "params": {
+        "trees": [
+            {
+                "weight": "1",
+                "root": {
+                    "feature": "feature_level_fq",
+                    "threshold": "2",
+                    "left": {
+                        "value": "100"
+                    },
+                    "right": {
+                        "value": "200"
+                    }
+                }
+            }
+        ]
+    }
+}

@@ -1,0 +1,39 @@
+apply plugin: 'java-library'
+
+dependencies {
+    implementation 'org.slf4j:slf4j-api:1.7.24'
+    implementation 'org.apache.logging.log4j:log4j-api:2.11.2'
+    implementation 'org.apache.logging.log4j:log4j-core:2.11.2'
+    implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.11.2'
+
+    compile 'com.alibaba:fastjson:1.2.67'
+   
+
+    compile "com.github.magese:ik-analyzer:8.3.0"
+
+    api project(':lucene:core')
+    api project(':lucene:queries')
+
+    api project(':solr:core')
+    api project(':solr:contrib:ltr')
+
+    api project(':custom:plugin-ltr')
+    api project(':custom:plugin-parser')
+    api project(':custom:plugin-table')
+
+
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    testImplementation project(':solr:test-framework')
+
+}
+
+repositories {
+    mavenLocal()
+    maven { url 'http://maven.aliyun.com/nexus/content/groups/public'}
+    mavenCentral()
+}
+
+task copy_jars(type: Copy) {
+    from configurations.runtime, configurations.compile
+    into "build/libs"
+}

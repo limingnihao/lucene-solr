@@ -1,0 +1,93 @@
+[
+    {
+        "name": "table_onehot_id",
+        "class": "org.limingnihao.solr.table.model.OnehotTableModel",
+        "datas": {
+            "def": "0",
+            "size": 4,
+            "variables": {
+                "id": "{!func} id"
+            },
+            "tables":[
+                { "key": "1", "value": "1000" },
+                { "key": "2", "value": "0100" },
+                { "key": "3", "value": "0010" },
+                { "key": "4", "value": "0001" }
+            ]
+        }
+    },
+    {
+        "name": "table_multihot_id",
+        "class": "org.limingnihao.solr.table.model.MultihotTableModel",
+        "datas": {
+            "def": "0",
+            "size": 5,
+            "variables": {
+                "id": "{!func} ${id:0}"
+            },
+            "tables":[
+                { "key": "1", "value": "10000" },
+                { "key": "2", "value": "01000" },
+                { "key": "3", "value": "00100" },
+                { "key": "4", "value": "00010" }
+            ]
+        }
+    },
+    {
+        "name": "table_crosshot_id_id",
+        "class": "org.limingnihao.solr.table.model.CrosshotTableModel",
+        "datas": {
+            "def": "0",
+            "size": 5,
+            "variables": {
+                "id_1": "{!func} ${id:0}",
+                "id_2": "{!func} id"
+            },
+            "tables":[
+                { "key": "1_1", "value": "0.1" },
+                { "key": "1_2", "value": "0.2" },
+                { "key": "3_3", "value": "0.3" },
+                { "key": "4_4", "value": "0.4" }
+            ]
+        }
+    },
+    {
+        "name": "table_eval_a_b_c_d",
+        "class": "org.limingnihao.solr.table.model.EvaluateTableModel",
+        "datas": {
+            "def": "0",
+            "size": 3,
+            "variables": {
+                "a": "{!func} ${a:0}",
+                "b": "{!func} ${b:0}",
+                "c": "{!func} ${c:0}",
+                "d": "{!func} ${d:0}"
+            },
+            "tables": [
+                {
+                    "condition": "a > b",
+                    "values": [
+                        "(a - b) / a ",
+                        "0",
+                        "0"
+                    ]
+                },
+                {
+                    "condition": "c < d",
+                    "values": [
+                        "0",
+                        "0",
+                        "(b - a) / b"
+                    ]
+                },
+                {
+                    "values": [
+                        "(a <: c) - (b >: d) / a",
+                        "(a <: c) - (b >: d) / a",
+                        "(a <: c) - (b >: d) / a"
+                    ]
+                }
+            ]
+        }
+    }
+]

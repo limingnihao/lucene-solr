@@ -1,0 +1,75 @@
+{
+    "store": "ltr_feature_v1",
+    "name": "ltr_model_v1",
+    "class": "org.apache.solr.ltr.model.MultipleAdditiveTreesModel",
+    "features": [
+        {
+            "name": "ltr_feature_v1_level"
+        },
+        {
+            "name": "ltr_feature_v1_subjects"
+        },
+        {
+            "name": "ltr_feature_v1_subjects_2"
+        },
+        {
+            "name": "ltr_feature_v1_code"
+        }
+    ],
+    "params": {
+        "trees": [
+            {
+                "weight": "1",
+                "root": {
+                    "feature": "ltr_feature_v1_level",
+                    "threshold": "1",
+                    "left": {
+                        "value": "1"
+                    },
+                    "right": {
+                        "value": "2"
+                    }
+                }
+            },
+            {
+                "weight": "1",
+                "root": {
+                    "feature": "ltr_feature_v1_subjects",
+                    "threshold": "100",
+                    "left": {
+                        "value": "30"
+                    },
+                    "right": {
+                        "value": "40"
+                    }
+                }
+            },
+            {
+                "weight": "1",
+                "root": {
+                    "feature": "ltr_feature_v1_subjects_2",
+                    "threshold": "100",
+                    "left": {
+                        "value": "500"
+                    },
+                    "right": {
+                        "value": "600"
+                    }
+                }
+            },
+            {
+                "weight": "1",
+                "root": {
+                    "feature": "ltr_feature_v1_code",
+                    "threshold": "1003.278",
+                    "left": {
+                        "value": "7000"
+                    },
+                    "right": {
+                        "value": "8000"
+                    }
+                }
+            }
+        ]
+    }
+}
