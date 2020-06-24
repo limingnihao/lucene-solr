@@ -69,3 +69,8 @@ include "solr:solr-ref-guide"
 include "solr:example"
 
 include "solr:packaging"
+
+include "custom:plugin-ltr"
+include "custom:plugin-parser"
+include "custom:plugin-rerank"
+include "custom:plugin-table"

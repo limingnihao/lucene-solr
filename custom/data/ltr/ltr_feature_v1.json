@@ -1,0 +1,35 @@
+[
+    {
+        "store": "ltr_feature_v1",
+        "name": "ltr_feature_v1_level",
+        "class": "org.apache.solr.ltr.feature.SolrFeature",
+        "params": {
+            "q": "{!func}query({!edismax q.op=or df=levels v='${level:-}'})"
+        }
+    },
+    {
+        "store": "ltr_feature_v1",
+        "name": "ltr_feature_v1_subjects",
+        "class": "org.apache.solr.ltr.feature.SolrFeature",
+        "params": {
+            "q": "{!func}query({!payload_score f=subjects v='${subject:-}' func=sum})"
+        }
+    },
+    {
+        "store": "ltr_feature_v1",
+        "name": "ltr_feature_v1_subjects_2",
+        "class": "org.apache.solr.ltr.feature.SolrFeature",
+        "params": {
+            "q": "{!func}query({!payload_score f=subjects v='${subject:-}' func=sum})",
+            "fq": ["subjects:${subject:-}"]
+        }
+    },
+    {
+        "store": "ltr_feature_v1",
+        "name": "ltr_feature_v1_code",
+        "class": "org.apache.solr.ltr.feature.SolrFeature",
+        "params": {
+            "q": "{!func}div(code, 1000)"
+        }
+    }
+]

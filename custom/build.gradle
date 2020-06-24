@@ -1,0 +1,7 @@
+subprojects {
+    group "org.limingnihao.solr.custom"
+
+    ext {
+        docroot = file("${buildDir}/documentation")
+    }
+}
