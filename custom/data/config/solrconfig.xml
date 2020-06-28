@@ -738,7 +738,7 @@
       <str>debug</str>
       <str>expand</str>
       <str>terms</str>
-      <str>debugExtend</str>
+      <!-- <str>debugExtend</str> -->
     </arr>
   </requestHandler>
 
@@ -1018,9 +1018,9 @@
     </arr>
   </requestHandler>
 
-  <searchComponent class="org.limingnihao.solr.component.DebugExtendComponent" name="debugExtend"/>
+  <!-- <searchComponent class="org.limingnihao.solr.component.DebugExtendComponent" name="debugExtend"/> -->
 
-  <searchComponent class="org.limingnihao.solr.component.CustomQueryComponent" name="customQuery" />
+  <!-- <searchComponent class="org.limingnihao.solr.component.CustomQueryComponent" name="customQuery" /> -->
 
 
   <!-- Update Processors
@@ -1177,7 +1177,7 @@
 
   <!--  <queryParser name="ltr" class="org.apache.solr.ltr.search.LTRQParserPlugin"/>-->
 
-  <queryParser name="ltr" class="org.limingnihao.solr.ltr.search.LtrExtendQParserPlugin"/>
+  <!-- <queryParser name="ltr" class="org.limingnihao.solr.ltr.search.LtrExtendQParserPlugin"/>
 
   <queryParser name="payload_score_boost" class="org.limingnihao.solr.search.PayloadScoreBoostQParserPlugin"/>
 
@@ -1191,7 +1191,7 @@
 
   <queryParser name="span_term" class="org.limingnihao.solr.search.spans.SpanTermQParserPlugin"/>
 
-  <queryParser name="span_position" class="org.limingnihao.solr.search.spans.SpanPositionRangeQParserPlugin"/>
+  <queryParser name="span_position" class="org.limingnihao.solr.search.spans.SpanPositionRangeQParserPlugin"/> -->
 
   <!-- table -->
 <!--  <queryParser name="table" class="org.limingniha.solr.table.search.TableQParserPlugin"/>-->
@@ -1210,7 +1210,7 @@
   <!--
      <valueSourceParser name="myfunc" class="com.mycompany.MyValueSourceParser" />
     -->
-  <valueSourceParser name="hexand" class="org.limingnihao.solr.queries.function.HexAndValueSourceParser"/>
+  <!-- <valueSourceParser name="hexand" class="org.limingnihao.solr.queries.function.HexAndValueSourceParser"/>
 
   <valueSourceParser name="ltr_extend" class="org.limingnihao.solr.ltr.function.LtrExtendValueSourceParser"/>
 
@@ -1226,7 +1226,7 @@
 
   <valueSourceParser name="termVector" class="org.limingnihao.solr.queries.function.TermVectorSourceParser"/>
 
-  <valueSourceParser name="table" class="org.limingnihao.solr.table.queries.function.TableValueSourceParser"/>
+  <valueSourceParser name="table" class="org.limingnihao.solr.table.queries.function.TableValueSourceParser"/> -->
 
   <!-- Document Transformers
        http://wiki.apache.org/solr/DocTransformers
@@ -1251,7 +1251,7 @@
       EditorialMarkerFactory will do exactly that:
      <transformer name="qecBooster" class="org.apache.solr.response.transform.EditorialMarkerFactory" />
     -->
-  <cache name="features_ltr_cache" class="solr.CaffeineCache" size="4096" initialSize="2048" autowarmCount="4096" regenerator="solr.search.NoOpRegenerator"/>
+  <!-- <cache name="features_ltr_cache" class="solr.CaffeineCache" size="4096" initialSize="2048" autowarmCount="4096" regenerator="solr.search.NoOpRegenerator"/>
 
   <cache name="features_rerank_cache" class="solr.CaffeineCache" size="4096" initialSize="2048" autowarmCount="4096" regenerator="solr.search.NoOpRegenerator"/>
 
@@ -1263,6 +1263,6 @@
 
   <transformer name="features_rerank" class="org.limingnihao.solr.rerank.response.transform.FeatureLoggerTransformerFactory">
     <str name="fvCacheName">features_rerank_cache</str>
-  </transformer>
+  </transformer> -->
 
 </config>

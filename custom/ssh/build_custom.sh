@@ -1,18 +1,22 @@
 #!/bin/bash
 #当前路径
+if [ -z "$1" ]; then
+  echo "project is empty !!!"
+  exit 1   
+fi
+
+
 path=$(pwd)
-echo $path
+project=plugin-$1
+sample_path=$path/custom/$project/build/libs
+runing_path=$path/solr/packaging/build/solr-9.0.0-SNAPSHOT/server/solr-webapp/webapp/WEB-INF/lib
 
-# ./gradlew assemble -p custom/plugin-ltr -x test
-./gradlew assemble -p custom/plugin-rerank -x test
+echo $path $project
 
-./gradlew copy_jars -p custom/plugin-rerank -x test
+./gradlew clean -p custom/$project
 
+./gradlew assemble -p custom/$project -x test
 
-#sample_jar=sample-custom-9.0.0-SNAPSHOT.jar
-#sample_path=sample/custom/build/libs
-#echo $sample_jar
-#echo $sample_path
-#stat $path/$sample_path/$sample_jar
-#cp -R -v $path/$sample_path/ $path/solr/server/solr-webapp/webapp/WEB-INF/lib
-#echo copy ok: $path/$sample_path/ TO $path/solr/server/solr-webapp/webapp/WEB-INF/lib
+./gradlew copy_jars -p custom/$project -x test
+
+#cp -R -v $sample_path/ $runing_path

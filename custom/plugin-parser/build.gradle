@@ -11,11 +11,11 @@ dependencies {
     compile 'com.udojava:EvalEx:2.5'
     compile "org.eweb4j:fel:0.8"
 
-    api project(':lucene:core')
-    api project(':lucene:queries')
+    implementation project(':lucene:core')
+    implementation project(':lucene:queries')
 
-    api project(':solr:core')
-    api project(':solr:contrib:ltr')
+    implementation project(':solr:core')
+    implementation project(':solr:contrib:ltr')
 
     testImplementation group: 'junit', name: 'junit', version: '4.12'
     testImplementation project(':solr:test-framework')

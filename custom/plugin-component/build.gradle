@@ -9,15 +9,7 @@ dependencies {
     compile 'com.alibaba:fastjson:1.2.67'
 
     implementation project(':lucene:core')
-    implementation project(':lucene:queries')
-
     implementation project(':solr:core')
-    implementation project(':solr:contrib:ltr')
-
-    implementation project(':custom:plugin-ltr')
-    implementation project(':custom:plugin-parser')
-    implementation project(':custom:plugin-table')
-
 
     testImplementation group: 'junit', name: 'junit', version: '4.12'
     testImplementation project(':solr:test-framework')
