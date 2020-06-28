@@ -5,14 +5,18 @@ import requests
 import os
 
 
-json_path = 'school_28610.json'
+json_path = '/custom/data/school_28610.json'
 
-solr_url = 'http://localhost:8981/solr/school/update?_=1586762171199&commitWithin=1000&overwrite=true&wt=json'
+solr_url = 'http://localhost:8981/solr/school1/update?commitWithin=1000&overwrite=true&wt=json'
+
+aheaders = {'Content-Type': 'application/json;charset=utf-8'}
+
+auths = requests.auth.HTTPBasicAuth('solr', 'SolrRocks')
 
 # 读取文件为json对象
 def readFileToJson():
     try:
-        file_path = os.getcwd() + "/sample/data/" + json_path
+        file_path = os.getcwd() + json_path
         file_object = open(file_path, encoding='utf-8')
         line_all = []
         while 1:
@@ -26,14 +30,10 @@ def readFileToJson():
 
 # 保存到solr
 def insertToSolr(lines):
-    aheaders = {'Content-Type': 'application/json;charset=utf-8'}
-    auths = requests.auth.HTTPBasicAuth('solr', 'SolrRocks')
     for l in lines:
         jsonstring   = "[" + l + "]"
         response = requests.post(solr_url, headers=aheaders, auth=auths, data = jsonstring.encode("utf-8"))
         print(response)
     print('-------------over')
-
-# readFileToJson()
 
 insertToSolr(readFileToJson())

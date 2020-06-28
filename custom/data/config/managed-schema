@@ -1,23 +1,25 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <schema name="school-config" version="1.6">
     <field name="id"          type="string"     indexed="true" stored="true" required="true" />
-    <field name="name"        type="text_ik"    indexed="true" stored="true" termVectors="true" termOffsets="true" termPositions="true"/>
+    <field name="name"        type="text_ws"    indexed="true" stored="true" termVectors="true" termOffsets="true" termPositions="true"/>
     <field name="name_ngram"  type="text_ngram" indexed="true" stored="true" termVectors="true" termOffsets="true" termPositions="true"/>
+
     <copyField source="name" dest="name_ngram"/>
 
     <field name="code"        type="plong"     indexed="true" stored="true"/>
-    <field name="province"    type="text_ik"   indexed="true" stored="true" />
-    <field name="city"        type="text_ik"   indexed="true" stored="true" />
-    <field name="area"        type="text_ik"   indexed="true" stored="true" />
-    <field name="address"     type="text_ik"   indexed="true" stored="true" />
-    <field name="lat"         type="pfloat"       indexed="true" stored="true"/>
-    <field name="lng"         type="pfloat"       indexed="true" stored="true"/>
+    <field name="province"    type="text_ws"   indexed="true" stored="true" />
+    <field name="city"        type="text_ws"   indexed="true" stored="true" />
+    <field name="area"        type="text_ws"   indexed="true" stored="true" />
+    <field name="address"     type="text_ws"   indexed="true" stored="true" />
+    <field name="lat"         type="pfloat"    indexed="true" stored="true"/>
+    <field name="lng"         type="pfloat"    indexed="true" stored="true"/>
 
-    <field name="levels"       type="text_ws"     indexed="true" stored="true" termVectors="true" termOffsets="true" termPositions="true"/>
-    <field name="tags"         type="strings"     indexed="true" stored="true"/>
-    <field name="subjects"     type="payloads"    indexed="true" stored="true"/>
+    <field name="levels"      type="text_ws"   indexed="true" stored="true" termVectors="true" termOffsets="true" termPositions="true"/>
+    <field name="tags"        type="strings"   indexed="true" stored="true"/>
+    <field name="subjects"    type="payloads"  indexed="true" stored="true"/>
 
-    <field name="_version_" type="plong" indexed="false" stored="false"/>
+    <field name="_version_" type="plong"  indexed="false" stored="false"/>
+    <field name="_router_" type="string" indexed="true" stored="true"/>
 
     <uniqueKey>id</uniqueKey>
 
@@ -83,16 +85,7 @@
         <similarity class="org.apache.lucene.search.similarities.BooleanSimilarity"/>
     </fieldType>
 
-    <fieldType name="text_ik" class="solr.TextField">
-        <analyzer type="index">
-            <tokenizer class="org.wltea.analyzer.lucene.IKTokenizerFactory" useSmart="false" conf="ik.conf"/>
-            <filter class="solr.LowerCaseFilterFactory"/>
-        </analyzer>
-        <analyzer type="query">
-            <tokenizer class="org.wltea.analyzer.lucene.IKTokenizerFactory" useSmart="true" conf="ik.conf"/>
-            <filter class="solr.LowerCaseFilterFactory"/>
-        </analyzer>
-    </fieldType>
+
 
     <fieldtype name="payloads" stored="true" indexed="true" class="solr.TextField" positionIncrementGap="100000">
         <analyzer>
