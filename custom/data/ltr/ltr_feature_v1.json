@@ -1,35 +1,101 @@
 [
-    {
-        "store": "ltr_feature_v1",
-        "name": "ltr_feature_v1_level",
-        "class": "org.apache.solr.ltr.feature.SolrFeature",
-        "params": {
-            "q": "{!func}query({!edismax q.op=or df=levels v='${level:-}'})"
-        }
-    },
-    {
-        "store": "ltr_feature_v1",
-        "name": "ltr_feature_v1_subjects",
-        "class": "org.apache.solr.ltr.feature.SolrFeature",
-        "params": {
-            "q": "{!func}query({!payload_score f=subjects v='${subject:-}' func=sum})"
-        }
-    },
-    {
-        "store": "ltr_feature_v1",
-        "name": "ltr_feature_v1_subjects_2",
-        "class": "org.apache.solr.ltr.feature.SolrFeature",
-        "params": {
-            "q": "{!func}query({!payload_score f=subjects v='${subject:-}' func=sum})",
-            "fq": ["subjects:${subject:-}"]
-        }
-    },
-    {
-        "store": "ltr_feature_v1",
-        "name": "ltr_feature_v1_code",
-        "class": "org.apache.solr.ltr.feature.SolrFeature",
-        "params": {
-            "q": "{!func}div(code, 1000)"
-        }
+  {
+    "store": "ltr_feature_v1",
+    "name": "ltr_feature_v1_level",
+    "class": "org.apache.solr.ltr.feature.SolrFeature",
+    "params": {
+      "q": "{!func}query({!edismax q.op=or df=levels v='${level:-}'})"
     }
+  },
+  {
+    "store": "ltr_feature_v1",
+    "name": "ltr_feature_v1_code",
+    "class": "org.apache.solr.ltr.feature.SolrFeature",
+    "params": {
+      "q": "{!func}div(code, 1000)"
+    }
+  },
+  {
+    "store": "ltr_feature_v1",
+    "name": "ltr_feature_v1_subjects_1",
+    "class": "org.apache.solr.ltr.feature.SolrFeature",
+    "params": {
+      "q": "{!func}query({!payload_score f=subjects v='${subject:-}' func=sum})"
+    }
+  },
+  {
+    "store": "ltr_feature_v1",
+    "name": "ltr_feature_v1_subjects_2",
+    "class": "org.apache.solr.ltr.feature.SolrFeature",
+    "params": {
+      "q": "{!func}query({!payload_score f=subjects v='${subject:-}' func=sum})",
+      "fq": [
+        "subjects:${subject:-}"
+      ]
+    }
+  },
+  {
+    "store": "ltr_feature_v1",
+    "name": "ltr_feature_v1_subjects_3",
+    "class": "org.apache.solr.ltr.feature.SolrFeature",
+    "params": {
+      "q": "{!func}mul(query({!payload_score f=subjects v='${subject:-}' func=sum}), 300)"
+    }
+  },
+  {
+    "store": "ltr_feature_v1",
+    "name": "ltr_feature_v1_subjects_4",
+    "class": "org.apache.solr.ltr.feature.SolrFeature",
+    "params": {
+      "q": "{!func}mul(query({!payload_score f=subjects v='${subject:-}' func=sum}), 400)"
+    }
+  },
+  {
+    "store": "ltr_feature_v1",
+    "name": "ltr_feature_v1_subjects_5",
+    "class": "org.apache.solr.ltr.feature.SolrFeature",
+    "params": {
+      "q": "{!func}mul(query({!payload_score f=subjects v='${subject:-}' func=sum}), 500)"
+    }
+  },
+  {
+    "store": "ltr_feature_v1",
+    "name": "ltr_feature_v1_subjects_6",
+    "class": "org.apache.solr.ltr.feature.SolrFeature",
+    "params": {
+      "q": "{!func}mul(query({!payload_score f=subjects v='${subject:-}' func=sum}), 600)"
+    }
+  },
+  {
+    "store": "ltr_feature_v1",
+    "name": "ltr_feature_v1_subjects_7",
+    "class": "org.apache.solr.ltr.feature.SolrFeature",
+    "params": {
+      "q": "{!func}mul(query({!payload_score f=subjects v='${subject:-}' func=sum}), 700)"
+    }
+  },
+  {
+    "store": "ltr_feature_v1",
+    "name": "ltr_feature_v1_subjects_8",
+    "class": "org.apache.solr.ltr.feature.SolrFeature",
+    "params": {
+      "q": "{!func}mul(query({!payload_score f=subjects v='${subject:-}' func=sum}), 800)"
+    }
+  },
+  {
+    "store": "ltr_feature_v1",
+    "name": "ltr_feature_v1_subjects_9",
+    "class": "org.apache.solr.ltr.feature.SolrFeature",
+    "params": {
+      "q": "{!func}mul(query({!payload_score f=subjects v='${subject:-}' func=sum}), 900)"
+    }
+  },
+  {
+    "store": "ltr_feature_v1",
+    "name": "ltr_feature_v1_subjects_10",
+    "class": "org.apache.solr.ltr.feature.SolrFeature",
+    "params": {
+      "q": "{!func}mul(query({!payload_score f=subjects v='${subject:-}' func=sum}), 100)"
+    }
+  }
 ]
