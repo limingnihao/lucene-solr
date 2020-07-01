@@ -5,7 +5,6 @@ if [ -z "$1" ]; then
   exit 1   
 fi
 
-
 path=$(pwd)
 project=plugin-$1
 sample_path=$path/custom/$project/build/libs
@@ -17,6 +16,6 @@ echo $path $project
 
 ./gradlew assemble -p custom/$project -x test
 
-./gradlew copy_jars -p custom/$project -x test
+#./gradlew copy_jars -p custom/$project -x test
 
-#cp -R -v $sample_path/ $runing_path
+cp -R -v $sample_path/ $runing_path

@@ -1,9 +1,7 @@
 package org.limingnihao.solr.component;
 
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.search.BulkScorer;
-import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.search.Weight;
+import org.apache.lucene.search.*;
 import org.apache.solr.common.params.ShardParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.NamedList;
@@ -11,6 +9,7 @@ import org.apache.solr.common.util.SimpleOrderedMap;
 import org.apache.solr.handler.component.ResponseBuilder;
 import org.apache.solr.handler.component.SearchComponent;
 import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.search.SolrIndexSearcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,28 +54,9 @@ public class DebugExtendComponent extends SearchComponent {
         }
     }
 
-
     @Override
     public String getDescription() {
         return "DebugExtendComponent component";
-    }
-
-    private NamedList getQueryDebug(ResponseBuilder rb, SolrQueryRequest req) {
-        try {
-            QueryDebugInfo queryInfo = new QueryDebugInfo();
-            // 一排
-            Weight weight = rb.getQuery().createWeight(req.getSearcher(), ScoreMode.COMPLETE, 1f);
-            List<LeafReaderContext> leaves = req.getSearcher().getIndexReader().leaves();
-            queryInfo.setLeaveCount(leaves.size());
-            for (int i = 0; i < leaves.size(); i++) {
-                LeafReaderContext ctx = leaves.get(i);
-                BulkScorer scorer = weight.bulkScorer(ctx);
-                queryInfo.addLevelInfo(ctx.ord, ctx.docBase, ctx.reader().maxDoc(), ctx.reader().numDocs(), ctx.reader().numDeletedDocs());
-            }
-            return queryInfo.asNamedList();
-        } catch (Exception e) {
-        }
-        return null;
     }
 
     private NamedList getRerankDebug(ResponseBuilder rb, SolrQueryRequest req) {
@@ -84,16 +64,78 @@ public class DebugExtendComponent extends SearchComponent {
         return nl;
     }
 
+    private NamedList getQueryDebug(ResponseBuilder rb, SolrQueryRequest req) throws IOException {
+
+        QueryDebugInfo queryInfo = new QueryDebugInfo();
+        Query query = rb.getQuery();
+        SolrIndexSearcher searcher = req.getSearcher();
+        DebugSimpleCollector collector = new DebugSimpleCollector();
+        Weight weight = searcher.createWeight(query, collector.scoreMode(), 1);
+        List<LeafReaderContext> leaves = searcher.getIndexReader().leaves();
+        queryInfo.setLeaveCount(leaves.size());
+        this.search(leaves, weight, collector, queryInfo);
+        log.info("collector - count: {}", collector.count);
+        return queryInfo.asNamedList();
+    }
+
+    protected void search(List<LeafReaderContext> leaves, Weight weight, Collector collector, QueryDebugInfo queryInfo) throws IOException {
+        // TODO: should we make this
+        for (LeafReaderContext ctx : leaves) { // search each subreader
+            final LeafCollector leafCollector;
+            try {
+                leafCollector = collector.getLeafCollector(ctx);
+            } catch (CollectionTerminatedException e) {
+                // there is no doc of interest in this reader context
+                // continue with the following leaf
+                continue;
+            }
+            BulkScorer scorer = weight.bulkScorer(ctx);
+            if (scorer != null) {
+                try {
+                    scorer.score(leafCollector, ctx.reader().getLiveDocs());
+                } catch (CollectionTerminatedException e) {
+                    // collection was terminated prematurely
+                    // continue with the following leaf
+                }
+            }
+            queryInfo.addLevelInfo(ctx.ord, ctx.docBase, ctx.reader().maxDoc(), ctx.reader().numDocs(), ctx.reader().numDeletedDocs());
+        }
+    }
+
+
+    class DebugSimpleCollector extends SimpleCollector {
+        private Scorable scorer;
+        private int count = 0;
+
+        @Override
+        public void setScorer(Scorable scorer) throws IOException {
+            this.scorer = scorer;
+        }
+
+        @Override
+        public void collect(int doc) throws IOException {
+            float score = this.scorer.score();
+            // This collector relies on the fact that scorers produce positive values:
+            assert score >= 0; // NOTE: false for NaN
+            count++;
+        }
+
+        @Override
+        public ScoreMode scoreMode() {
+            return ScoreMode.COMPLETE;
+        }
+    }
+
     class QueryDebugInfo {
         private long leaveCount;
-        private List<LeaveInfo> leaveList = new ArrayList<>();
+        private List<LeaveDebugInfo> leaveList = new ArrayList<>();
 
         public void setLeaveCount(long leaveCount) {
             this.leaveCount = leaveCount;
         }
 
         public void addLevelInfo(int ord, int docBase, int maxDoc, int numDocs, int delDocs) {
-            this.leaveList.add(new LeaveInfo(ord, docBase, maxDoc, numDocs, delDocs));
+            this.leaveList.add(new LeaveDebugInfo(ord, docBase, maxDoc, numDocs, delDocs));
         }
 
         public NamedList asNamedList() {
@@ -102,21 +144,21 @@ public class DebugExtendComponent extends SearchComponent {
 
             NamedList<Object> m_leaves = new SimpleOrderedMap<>();
             m.add("leaveList", m_leaves);
-            for (LeaveInfo i : leaveList) {
+            for (LeaveDebugInfo i : leaveList) {
                 m_leaves.add(String.valueOf(i.ord), i.asNamedList());
             }
             return m;
         }
     }
 
-    class LeaveInfo {
+    class LeaveDebugInfo {
         private final int ord;
         private final int docBase;
         private final int maxDoc;
         private final int numDocs;
         private final int delDocs;
 
-        public LeaveInfo(int ord, int docBase, int maxDoc, int numDocs, int delDocs) {
+        public LeaveDebugInfo(int ord, int docBase, int maxDoc, int numDocs, int delDocs) {
             this.ord = ord;
             this.docBase = docBase;
             this.maxDoc = maxDoc;

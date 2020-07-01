@@ -19,4 +19,5 @@ solr/packaging/build/solr-9.0.0-SNAPSHOT/bin/solr start -c -f \
         -m 256m \
         -a -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=$portDebug \
         -Dsolr.solrxml.location=zookeeper \
-        -Dsolr.log.dir=$home
+        -Dsolr.log.dir=$home \
+        -Dsolr.ltr.enabled=true
