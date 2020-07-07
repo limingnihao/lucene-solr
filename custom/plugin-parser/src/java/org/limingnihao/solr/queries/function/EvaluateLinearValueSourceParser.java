@@ -15,13 +15,11 @@ import org.apache.lucene.search.Query;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.params.MultiMapSolrParams;
 import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.request.SolrRequestInfo;
 import org.apache.solr.request.macro.MacroExpander;
 import org.apache.solr.search.FunctionQParser;
 import org.apache.solr.search.QParser;
 import org.apache.solr.search.SyntaxError;
 import org.apache.solr.search.ValueSourceParser;
-import org.apache.solr.util.RTimerTree;
 import org.limingnihao.solr.util.EvaluateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,19 +53,16 @@ public class EvaluateLinearValueSourceParser extends ValueSourceParser {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     protected final String name = "evaluate";
-    private boolean isDebugTimings = false;
-    private long[] timings;
-    private int count = 0;
 
     @Override
     public ValueSource parse(FunctionQParser fp) throws SyntaxError {
         String expressionParam = fp.parseArg();
         String featuresParam = fp.parseArg();
         if (StringUtils.isBlank(expressionParam)) {
-            throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, "the param of `features` is empty!");
+            throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, name + ": the param of `features` is empty!");
         }
         if (StringUtils.isBlank(featuresParam)) {
-            throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, "the param of `expression` is empty!");
+            throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, name + ": the param of `expression` is empty!");
         }
         expressionParam = expressionParam.trim();
         featuresParam = featuresParam.trim();
@@ -110,23 +105,15 @@ public class EvaluateLinearValueSourceParser extends ValueSourceParser {
                 featureNames.add(feature.getName());
             }
         }
-        this.isDebugTimings = SolrRequestInfo.getRequestInfo().getResponseBuilder().isDebugTimings();
-        if (this.isDebugTimings) {
-            this.timings = new long[featureNames.size() + 1];
-            for (int i = 0; i < timings.length; i++) {
-                this.timings[i] = 0;
-            }
-        }
-        count = 0;
-        return new EvaluateLinearValueSource(expression, valueSources, featureNames);
+        return new EvaluateValueSource(expression, valueSources, featureNames);
     }
 
-    public class EvaluateLinearValueSource extends ValueSource {
+    public class EvaluateValueSource extends ValueSource {
         private final String expression;
         private final List<ValueSource> valueSources;
         private final List<String> featureNames;
 
-        public EvaluateLinearValueSource(String expression, List<ValueSource> valueSources, List<String> featureNames) throws SyntaxError {
+        public EvaluateValueSource(String expression, List<ValueSource> valueSources, List<String> featureNames) throws SyntaxError {
             this.expression = expression;
             this.valueSources = valueSources;
             this.featureNames = featureNames;
@@ -138,7 +125,7 @@ public class EvaluateLinearValueSourceParser extends ValueSourceParser {
             for (int i = 0, len = valueSources.size(); i < len; i++) {
                 valFunctions[i] = this.valueSources.get(i).getValues(context, readerContext);
             }
-            return new EvaluateLinearFunctionValues(expression, valFunctions, featureNames.toArray(new String[]{}));
+            return new EvaluateFunctionValues(expression, valFunctions, featureNames.toArray(new String[]{}));
         }
 
         @Override
@@ -146,7 +133,7 @@ public class EvaluateLinearValueSourceParser extends ValueSourceParser {
             if (this.getClass() != o.getClass()) {
                 return false;
             }
-            EvaluateLinearValueSource other = (EvaluateLinearValueSource) o;
+            EvaluateValueSource other = (EvaluateValueSource) o;
             return this.valueSources.equals(other.valueSources);
         }
 
@@ -173,12 +160,12 @@ public class EvaluateLinearValueSourceParser extends ValueSourceParser {
         }
     }
 
-    public class EvaluateLinearFunctionValues extends FunctionValues {
+    public class EvaluateFunctionValues extends FunctionValues {
         private final String expression;
         private final FunctionValues[] valFunctions;
         private final String[] featureNames;
 
-        public EvaluateLinearFunctionValues(String expression, FunctionValues[] valFunctions, String[] featureNames) {
+        public EvaluateFunctionValues(String expression, FunctionValues[] valFunctions, String[] featureNames) {
             this.expression = expression;
             this.valFunctions = valFunctions;
             this.featureNames = featureNames;
@@ -186,17 +173,7 @@ public class EvaluateLinearValueSourceParser extends ValueSourceParser {
 
         @Override
         public float floatVal(int doc) throws IOException {
-            count++;
-            log.info("doc: {}, count: {}", doc, count);
-            if (isDebugTimings) {
-                float[] floatValues = this.getValuesWithTiming(doc);
-                long current = System.nanoTime();
-                float score = this.evaluate(floatValues);
-                timings[timings.length - 1] += (System.nanoTime() - current);
-                return score;
-            } else {
-                return this.evaluate(this.getValues(doc));
-            }
+            return this.evaluate(this.getValues(doc));
         }
 
         /**
@@ -211,19 +188,6 @@ public class EvaluateLinearValueSourceParser extends ValueSourceParser {
         }
 
         /**
-         * 获取feature的得分
-         */
-        public float[] getValuesWithTiming(int doc) throws IOException {
-            float[] functionValues = new float[valFunctions.length];
-            for (int i = 0; i < valFunctions.length; i++) {
-                long current = System.nanoTime();
-                functionValues[i] = valFunctions[i].floatVal(doc);
-                timings[i] += (System.nanoTime() - current);
-            }
-            return functionValues;
-        }
-
-        /**
          * 计算表达式
          */
         public float evaluate(float[] floatValues) throws IOException {
@@ -231,9 +195,6 @@ public class EvaluateLinearValueSourceParser extends ValueSourceParser {
                 return 0f;
             }
             float score = EvaluateUtil.eval(this.expression, this.featureNames, floatValues);
-            if (log.isDebugEnabled()) {
-                log.debug("score: {}, calc: {}, keys: {}, values: {}", score, this.expression, Arrays.toString(this.featureNames), Arrays.toString(floatValues));
-            }
             return score;
         }
 
@@ -264,6 +225,18 @@ public class EvaluateLinearValueSourceParser extends ValueSourceParser {
             }
             float finalScore = this.evaluate(floatValues);
             return Explanation.match(finalScore, toString(doc) + " model applied to features, sum of:", featureExplanations);
+        }
+
+        public String getExpression() {
+            return expression;
+        }
+
+        public FunctionValues[] getValFunctions() {
+            return valFunctions;
+        }
+
+        public String[] getFeatureNames() {
+            return featureNames;
         }
     }
 
@@ -296,7 +269,7 @@ public class EvaluateLinearValueSourceParser extends ValueSourceParser {
         return new QueryValueSource(query, 0);
     }
 
-
+    // feature 解析
     public static class FeatureInfo {
         private String name;
         private String query;

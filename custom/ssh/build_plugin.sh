@@ -18,6 +18,6 @@ echo $path $project
 
 ./gradlew assemble -p $project -x test
 
-#./gradlew copy_jars -p $project -x test
+./gradlew copy_jars -p $project -x test
 
-cp -R -v $path/build_path/ dist_path
+cp -R -v $path/$build_path/ $dist_path

@@ -22,6 +22,8 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.spans.SpanNearQuery;
 import org.apache.lucene.search.spans.SpanOrQuery;
@@ -43,7 +45,7 @@ public class SpanQParserPlugin extends QParserPlugin {
     public static final String SLOP = "slop";
     public static final String INORDER = "inOrder";
     public static final String DEFAULT_OPERATOR = "phrase";
-
+    public static final String EMPTY = "empty";
 
     @Override
     public QParser createParser(String qstr, SolrParams localParams, SolrParams params, SolrQueryRequest req) {
@@ -53,9 +55,10 @@ public class SpanQParserPlugin extends QParserPlugin {
                 String field = localParams.get(QueryParsing.F);
                 String value = localParams.get(QueryParsing.V);
                 int slop = Integer.parseInt(localParams.get(SLOP, "0"));
-                boolean inOrder = Boolean.parseBoolean(localParams.get(INORDER, "true"));
+                boolean inOrder = localParams.getBool(INORDER, true);
                 String operator = localParams.get("operator", DEFAULT_OPERATOR);
                 boolean splitOnWhitespace = localParams.getBool(QueryParsing.SPLIT_ON_WHITESPACE, SolrQueryParser.DEFAULT_SPLIT_ON_WHITESPACE);
+                boolean empty = localParams.getBool(EMPTY, true);
 
                 if (!(operator.equalsIgnoreCase(DEFAULT_OPERATOR) || operator.equalsIgnoreCase("or"))) {
                     throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, "Supported operators are : or , phrase");
@@ -83,7 +86,11 @@ public class SpanQParserPlugin extends QParserPlugin {
                 }
 
                 if (query == null) {
-                    throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, "SpanQuery is null");
+                    if (empty) {
+                        return new MatchNoDocsQuery();
+                    } else {
+                        return new MatchAllDocsQuery();
+                    }
                 }
                 return query;
             }

@@ -10,6 +10,7 @@ dependencies {
 
     implementation project(':lucene:core')
     implementation project(':solr:core')
+    implementation project(':custom:plugin-parser')
 
     testImplementation group: 'junit', name: 'junit', version: '4.12'
     testImplementation project(':solr:test-framework')

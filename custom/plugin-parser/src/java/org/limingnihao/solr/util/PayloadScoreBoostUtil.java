@@ -28,7 +28,7 @@ public class PayloadScoreBoostUtil {
     // 计算规则
     public static final String CALCULATE_MUL = "mul";
     public static final String CALCULATE_SUM = "sum";
-    public static final String CALCULATE_DIV = "sum";
+    public static final String CALCULATE_DIV = "div";
     public static final String CALCULATE_SUB = "sub";
 
     /**
