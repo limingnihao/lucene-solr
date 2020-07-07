@@ -722,6 +722,7 @@
              will be overridden by parameters in the request
           -->
         <lst name="defaults">
+            <str name="q.op">AND</str>
             <str name="echoParams">explicit</str>
             <int name="rows">10</int>
             <!-- Default search field
@@ -1574,6 +1575,7 @@
        <valueSourceParser name="myfunc"
                           class="com.mycompany.MyValueSourceParser" />
       -->
+    <valueSourceParser name="eval" class="org.limingnihao.solr.queries.function.EvaluateLinearValueSourceParser"/>
 
     <!--  LTR query parser
 
