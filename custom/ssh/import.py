@@ -7,7 +7,7 @@ import os
 
 json_path = '/custom/data/school_28610.json'
 
-solr_url = 'http://localhost:8981/solr/school1/update?commitWithin=1000&overwrite=true&wt=json'
+solr_url = 'http://localhost:8981/solr/school/update?commitWithin=1000&overwrite=true&wt=json'
 
 aheaders = {'Content-Type': 'application/json;charset=utf-8'}
 
