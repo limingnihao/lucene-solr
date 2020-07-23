@@ -2,41 +2,37 @@ package org.apache.solr.ltr;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.RandomIndexWriter;
-import org.apache.lucene.index.Term;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.index.*;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Counter;
-import org.apache.lucene.util.ThreadInterruptedException;
 import org.apache.solr.SolrTestCase;
 import org.apache.solr.core.SolrResourceLoader;
 import org.apache.solr.ltr.feature.Feature;
-import org.apache.solr.ltr.feature.FieldValueFeature;
+import org.apache.solr.ltr.feature.FeatureException;
 import org.apache.solr.ltr.model.LTRScoringModel;
 import org.apache.solr.ltr.model.TestLinearModel;
 import org.apache.solr.ltr.norm.IdentityNormalizer;
 import org.apache.solr.ltr.norm.Normalizer;
-import org.apache.solr.ltr.search.LTRQParserPlugin;
-import org.apache.solr.search.AbstractReRankQuery;
-import org.apache.solr.search.RankQuery;
+import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.search.SolrQueryTimeoutImpl;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.*;
 
+
 public class TestLTRTimeAllowed extends SolrTestCase {
 
     private static final SolrResourceLoader solrResourceLoader = new SolrResourceLoader();
 
-    private IndexSearcher searcher;
     private Directory directory;
-    private IndexReader reader;
+    private DirectoryReader reader;
 
     private Query query;
-    private Counter counter;
-    private TimeLimitingCollector.TimerThread counterThread;
+    private LTRScoringQuery ltrScoringQuery;
+    private static int total = 0;
 
     /**
      * initializes
@@ -44,78 +40,41 @@ public class TestLTRTimeAllowed extends SolrTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        counter = Counter.newCounter(true);
-        counterThread = new TimeLimitingCollector.TimerThread(counter);
-        counterThread.start();
 
         directory = newDirectory();
         final RandomIndexWriter w = new RandomIndexWriter(random(), directory);
+
         Document doc = new Document();
         doc.add(newStringField("id", "0", Field.Store.YES));
         doc.add(newTextField("field", "wizard the the the the the oz",
                 Field.Store.NO));
-        doc.add(newStringField("final-score", "F", Field.Store.YES)); // TODO: change to numeric field
+        doc.add(new StoredField("final-score", 1));
         w.addDocument(doc);
 
         doc = new Document();
         doc.add(newStringField("id", "1", Field.Store.YES));
-        doc.add(newTextField("field", "wizard",
+        // 1 extra token, but wizard and oz are close;
+        doc.add(newTextField("field", "wizard the the oz the the the the",
                 Field.Store.NO));
-        doc.add(newStringField("final-score", "T", Field.Store.YES)); // TODO: change to numeric field
+        doc.add(new StoredField("final-score", 2));
+        w.addDocument(doc);
+
+        doc = new Document();
+        doc.add(newStringField("id", "2", Field.Store.YES));
+        // 1 extra token, but wizard and oz are close;
+        doc.add(newTextField("field", "oz wizard the the the the the the",
+                Field.Store.NO));
+        doc.add(new StoredField("final-score", 3));
         w.addDocument(doc);
 
         reader = w.getReader();
         w.close();
-
-        searcher = newSearcher(reader, false, false);
 
         // Do ordinary BooleanQuery:
         final BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
         bqBuilder.add(new TermQuery(new Term("field", "wizard")), BooleanClause.Occur.SHOULD);
         bqBuilder.add(new TermQuery(new Term("field", "oz")), BooleanClause.Occur.SHOULD);
         query = bqBuilder.build();
-    }
-
-    @Override
-    public void tearDown() throws Exception {
-        reader.close();
-        directory.close();
-        counterThread.stopTimer();
-        counterThread.join();
-        super.tearDown();
-    }
-
-    private static List<Feature> makeFieldValueFeatures(int[] featureIds,
-                                                        String field) {
-        final List<Feature> features = new ArrayList<>();
-        for (final int i : featureIds) {
-            final Map<String, Object> params = new HashMap<String, Object>();
-            params.put("field", field);
-            final Feature f = Feature.getInstance(solrResourceLoader,
-                    FieldValueFeature.class.getName(),
-                    "f" + i, params);
-            f.setIndex(i);
-            features.add(f);
-        }
-        return features;
-    }
-
-
-    @Test
-    public void testSearch() throws Exception {
-
-        // first run the standard query
-        MyHitCollector myHc = new MyHitCollector();
-        searcher.search(query, myHc);
-
-        assertEquals(2, myHc.hitCount());
-        assertEquals("0", searcher.doc(myHc.hits.get(0).doc).get("id"));
-        assertEquals("1", searcher.doc(myHc.hits.get(1).doc).get("id"));
-
-    }
-
-    public void testLTRScoringQueryTimeAllowed() throws Exception {
-        MyHitCollector myHc = new MyHitCollector();
 
         final List<Feature> features = makeFieldValueFeatures(new int[]{0, 1, 2},
                 "final-score");
@@ -127,122 +86,130 @@ public class TestLTRTimeAllowed extends SolrTestCase {
         final LTRScoringModel ltrScoringModel = TestLinearModel.createLinearModel("test",
                 features, norms, "test", allFeatures, TestLinearModel.makeFeatureWeights(features));
 
-        // Not set timeAllowed
-        LTRScoringQuery scoringQuery = new LTRScoringQuery(ltrScoringModel);
-        LTRQuery ltrQuery = new LTRQuery(scoringQuery, 100);
-        TopDocsCollector topDocsCollector = ltrQuery.getTopDocsCollector(100, null, searcher);
-        searcher.search(ltrQuery, topDocsCollector);
-
-        assertEquals(2, myHc.hitCount());
+        ltrScoringQuery = new LTRScoringQuery(ltrScoringModel);
     }
 
-
-    private Collector createTimedCollector(MyHitCollector hc, long timeAllowed, boolean greedy) {
-        TimeLimitingCollector res = new TimeLimitingCollector(hc, counter, timeAllowed);
-        res.setGreedy(greedy); // set to true to make sure at least one doc is collected.
-        return res;
+    @Override
+    public void tearDown() throws Exception {
+        reader.close();
+        directory.close();
+        super.tearDown();
     }
 
+    private IndexSearcher getSearcher(IndexReader r) {
+        final IndexSearcher searcher = newSearcher(r, false, false);
+        return searcher;
+    }
 
-    // counting collector that can slow down at collect().
-    private static class MyHitCollector extends SimpleCollector {
-        final List<ScoreDoc> hits = new ArrayList<>();
-        private int slowdown = 0;
-        private int lastDocCollected = -1;
-        private int docBase = 0;
-        private int endDoc = 0;
-        private Scorable scorer;
+    private static List<Feature> makeFieldValueFeatures(int[] featureIds,
+                                                        String field) {
+        final List<Feature> features = new ArrayList<>();
+        for (final int i : featureIds) {
+            final Map<String, Object> params = new HashMap<String, Object>();
+            params.put("field", field);
+            final Feature f = new FieldValueFeature("f" + i, params, field);
+            f.setIndex(i);
+            features.add(f);
+        }
+        return features;
+    }
 
-        /**
-         * amount of time to wait on each collect to simulate a long iteration
-         */
-        public void setSlowDown(int milliseconds) {
-            slowdown = milliseconds;
+    @Test
+    public void testRescorer() throws IOException {
+        SolrQueryTimeoutImpl.set(1100L);
+        IndexSearcher searcher = getSearcher(new ExitableDirectoryReader(reader, SolrQueryTimeoutImpl.getInstance()));
+
+        TopDocs hits = searcher.search(query, 10);
+        final LTRRescorer rescorer = new LTRRescorer(ltrScoringQuery);
+        hits = rescorer.rescore(searcher, hits, 3);
+
+        // rerank using the field final-score
+        assertEquals("1", searcher.doc(hits.scoreDocs[0].doc).get("id"));
+        assertEquals("0", searcher.doc(hits.scoreDocs[1].doc).get("id"));
+
+    }
+
+    public static class FieldValueFeature extends Feature {
+
+        private String field;
+
+        public String getField() {
+            return field;
         }
 
-        public int hitCount() {
-            return hits.size();
-        }
-
-        public int getLastDocCollected() {
-            return lastDocCollected;
+        public void setField(String field) {
+            this.field = field;
         }
 
         @Override
-        public void setScorer(Scorable scorer) throws IOException {
-            this.scorer = scorer;
+        public LinkedHashMap<String, Object> paramsToMap() {
+            final LinkedHashMap<String, Object> params = defaultParamsToMap();
+            params.put("field", field);
+            return params;
         }
 
         @Override
-        public void collect(final int doc) throws IOException {
-            int docId = doc + docBase;
-            if(docId >= endDoc ){
-                return;
+        protected void validate() throws FeatureException {
+        }
+
+        public FieldValueFeature(String name, Map<String, Object> params, String field) {
+            super(name, params);
+            this.field = field;
+        }
+
+        @Override
+        public FeatureWeight createWeight(IndexSearcher searcher, boolean needsScores,
+                                          SolrQueryRequest request, Query originalQuery, Map<String, String[]> efi)
+                throws IOException {
+            return new FieldValueFeatureWeight(searcher, request, originalQuery, efi);
+        }
+
+        public class FieldValueFeatureWeight extends FeatureWeight {
+
+            public FieldValueFeatureWeight(IndexSearcher searcher,
+                                           SolrQueryRequest request, Query originalQuery, Map<String, String[]> efi) {
+                super(FieldValueFeature.this, searcher, request, originalQuery, efi);
             }
-            if (slowdown > 0) {
-                try {
-                    Thread.sleep(slowdown);
-                } catch (InterruptedException ie) {
-                    throw new ThreadInterruptedException(ie);
+
+            @Override
+            public FeatureScorer scorer(LeafReaderContext context) throws IOException {
+                total++;
+                return new FieldValueFeatureScorer(this, context,
+                        DocIdSetIterator.all(DocIdSetIterator.NO_MORE_DOCS));
+            }
+
+            public class FieldValueFeatureScorer extends FeatureScorer {
+                LeafReaderContext context = null;
+
+                public FieldValueFeatureScorer(FeatureWeight weight,
+                                               LeafReaderContext context, DocIdSetIterator itr) {
+                    super(weight, itr);
+                    this.context = context;
+                }
+
+                @Override
+                public float score() throws IOException {
+                    final Document document = context.reader().document(itr.docID());
+                    final IndexableField indexableField = document.getField(field);
+                    if (indexableField == null) {
+                        return getDefaultValue();
+                    }
+                    final Number number = indexableField.numericValue();
+                    if (number != null) {
+//                        if (number.floatValue() == 3) {
+//                            throw new ExitableDirectoryReader.ExitingReaderException("The request took too long to iterate over doc values");
+//                        }
+                        return number.floatValue();
+                    }
+                    return getDefaultValue();
+                }
+
+                @Override
+                public float getMaxScore(int upTo) throws IOException {
+                    return Float.POSITIVE_INFINITY;
                 }
             }
-            hits.add(new ScoreDoc(docId, scorer.score()));
-            assert docId >= 0 : " base=" + docBase + " doc=" + doc;
-            lastDocCollected = docId;
-        }
-
-        @Override
-        protected void doSetNextReader(LeafReaderContext context) throws IOException {
-            docBase = context.docBase;
-            endDoc = context.docBase + context.reader().maxDoc();
-        }
-
-        @Override
-        public ScoreMode scoreMode() {
-            return ScoreMode.COMPLETE;
-        }
-
-    }
-
-
-    /**
-     * A learning to rank Query, will incapsulate a learning to rank model, and delegate to it the rescoring
-     * of the documents.
-     **/
-    public class LTRQuery extends AbstractReRankQuery {
-        private final LTRScoringQuery scoringQuery;
-
-        public LTRQuery(LTRScoringQuery scoringQuery, int reRankDocs) {
-            super(query, reRankDocs, new LTRRescorer(scoringQuery));
-            this.scoringQuery = scoringQuery;
-        }
-
-        @Override
-        public int hashCode() {
-            return 31 * classHash() + (mainQuery.hashCode() + scoringQuery.hashCode() + reRankDocs);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return false;
-        }
-
-        @Override
-        public RankQuery wrap(Query _mainQuery) {
-            super.wrap(_mainQuery);
-            scoringQuery.setOriginalQuery(_mainQuery);
-            return this;
-        }
-
-        @Override
-        public String toString(String field) {
-            return "{!ltr mainQuery='" + mainQuery.toString() + "' scoringQuery='"
-                    + scoringQuery.toString() + "' reRankDocs=" + reRankDocs + "}";
-        }
-
-        @Override
-        protected Query rewrite(Query rewrittenMainQuery) throws IOException {
-            return new LTRQuery(scoringQuery, reRankDocs).wrap(rewrittenMainQuery);
         }
     }
+
 }
