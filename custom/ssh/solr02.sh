@@ -4,8 +4,8 @@ path=$(pwd)
 
 homePath=$path/custom/temp/n2
 
-#solrPath=solr/packaging/build/solr-9.0.0-SNAPSHOT
-solrPath=solr
+solrPath=solr/packaging/build/solr-9.0.0-SNAPSHOT
+#solrPath=solr
 
 zkhost=localhost:2181,localhost:2182,localhost:2183/solr_cloud_dev_school
 

@@ -10,9 +10,9 @@ project=$1/core
 
 build_path=$project/build/libs
 
-#dist_path=$path/solr/packaging/build/solr-9.0.0-SNAPSHOT/server/solr-webapp/webapp/WEB-INF/lib
+dist_path=$path/solr/packaging/build/solr-9.0.0-SNAPSHOT/server/solr-webapp/webapp/WEB-INF/lib
 
-dist_path=$path/solr/server/solr-webapp/webapp/WEB-INF/lib
+#dist_path=$path/solr/server/solr-webapp/webapp/WEB-INF/lib
 
 echo $path $project
 
