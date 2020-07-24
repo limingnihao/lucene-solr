@@ -6,7 +6,6 @@ import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.*;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.util.Counter;
 import org.apache.solr.SolrTestCase;
 import org.apache.solr.core.SolrResourceLoader;
 import org.apache.solr.ltr.feature.Feature;
@@ -16,23 +15,27 @@ import org.apache.solr.ltr.model.TestLinearModel;
 import org.apache.solr.ltr.norm.IdentityNormalizer;
 import org.apache.solr.ltr.norm.Normalizer;
 import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.search.SolrQueryTimeoutImpl;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.*;
 
 
-public class TestLTRTimeAllowed extends SolrTestCase {
+public class TestLTRExitingReaderException extends SolrTestCase {
 
     private static final SolrResourceLoader solrResourceLoader = new SolrResourceLoader();
 
-    private Directory directory;
-    private DirectoryReader reader;
+    private Directory directory1;
+    private Directory directory2;
+
+    private IndexReader reader;
 
     private Query query;
     private LTRScoringQuery ltrScoringQuery;
-    private static int total = 0;
+
+    static boolean scorerExitingReaderException = false;
+    static boolean scoreExitingReaderException = false;
+    static int leafTotal = 0;
 
     /**
      * initializes
@@ -41,15 +44,15 @@ public class TestLTRTimeAllowed extends SolrTestCase {
     public void setUp() throws Exception {
         super.setUp();
 
-        directory = newDirectory();
-        final RandomIndexWriter w = new RandomIndexWriter(random(), directory);
+        directory1 = newDirectory();
+        final RandomIndexWriter w1 = new RandomIndexWriter(random(), directory1);
 
         Document doc = new Document();
         doc.add(newStringField("id", "0", Field.Store.YES));
         doc.add(newTextField("field", "wizard the the the the the oz",
                 Field.Store.NO));
         doc.add(new StoredField("final-score", 1));
-        w.addDocument(doc);
+        w1.addDocument(doc);
 
         doc = new Document();
         doc.add(newStringField("id", "1", Field.Store.YES));
@@ -57,7 +60,11 @@ public class TestLTRTimeAllowed extends SolrTestCase {
         doc.add(newTextField("field", "wizard the the oz the the the the",
                 Field.Store.NO));
         doc.add(new StoredField("final-score", 2));
-        w.addDocument(doc);
+        w1.addDocument(doc);
+
+
+        directory2 = newDirectory();
+        final RandomIndexWriter w2 = new RandomIndexWriter(random(), directory2);
 
         doc = new Document();
         doc.add(newStringField("id", "2", Field.Store.YES));
@@ -65,10 +72,15 @@ public class TestLTRTimeAllowed extends SolrTestCase {
         doc.add(newTextField("field", "oz wizard the the the the the the",
                 Field.Store.NO));
         doc.add(new StoredField("final-score", 3));
-        w.addDocument(doc);
+        w2.addDocument(doc);
 
-        reader = w.getReader();
-        w.close();
+//        reader = w1.getReader();
+
+        reader = new MultiReader(w1.getReader(), w2.getReader());
+
+        w1.close();
+        w2.close();
+
 
         // Do ordinary BooleanQuery:
         final BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
@@ -92,7 +104,8 @@ public class TestLTRTimeAllowed extends SolrTestCase {
     @Override
     public void tearDown() throws Exception {
         reader.close();
-        directory.close();
+        directory1.close();
+        directory2.close();
         super.tearDown();
     }
 
@@ -114,19 +127,54 @@ public class TestLTRTimeAllowed extends SolrTestCase {
         return features;
     }
 
+
     @Test
     public void testRescorer() throws IOException {
-        SolrQueryTimeoutImpl.set(1100L);
-        IndexSearcher searcher = getSearcher(new ExitableDirectoryReader(reader, SolrQueryTimeoutImpl.getInstance()));
+        scorerExitingReaderException = false;
+        scoreExitingReaderException = false;
 
+        IndexSearcher searcher = getSearcher(reader);
         TopDocs hits = searcher.search(query, 10);
+
+        final LTRRescorer rescorer = new LTRRescorer(ltrScoringQuery);
+        hits = rescorer.rescore(searcher, hits, 3);
+
+        // rerank using the field final-score
+        assertEquals("2", searcher.doc(hits.scoreDocs[0].doc).get("id"));
+        assertEquals("1", searcher.doc(hits.scoreDocs[1].doc).get("id"));
+        assertEquals("0", searcher.doc(hits.scoreDocs[2].doc).get("id"));
+    }
+
+    @Test
+    public void testRescorerPartialScore() throws IOException {
+        scorerExitingReaderException = false;
+        scoreExitingReaderException = true;
+
+        IndexSearcher searcher = getSearcher(reader);
+        TopDocs hits = searcher.search(query, 10);
+
         final LTRRescorer rescorer = new LTRRescorer(ltrScoringQuery);
         hits = rescorer.rescore(searcher, hits, 3);
 
         // rerank using the field final-score
         assertEquals("1", searcher.doc(hits.scoreDocs[0].doc).get("id"));
         assertEquals("0", searcher.doc(hits.scoreDocs[1].doc).get("id"));
+    }
 
+    @Test
+    public void testRescorerPartialScorer() throws IOException {
+        scorerExitingReaderException = true;
+        scoreExitingReaderException = false;
+
+        IndexSearcher searcher = getSearcher(reader);
+        TopDocs hits = searcher.search(query, 10);
+
+        final LTRRescorer rescorer = new LTRRescorer(ltrScoringQuery);
+        hits = rescorer.rescore(searcher, hits, 3);
+
+        // rerank using the field final-score
+        assertEquals("1", searcher.doc(hits.scoreDocs[0].doc).get("id"));
+        assertEquals("0", searcher.doc(hits.scoreDocs[1].doc).get("id"));
     }
 
     public static class FieldValueFeature extends Feature {
@@ -173,7 +221,11 @@ public class TestLTRTimeAllowed extends SolrTestCase {
 
             @Override
             public FeatureScorer scorer(LeafReaderContext context) throws IOException {
-                total++;
+                leafTotal++;
+                // An ExitingReaderException occurs during the mock scorer process
+                if(leafTotal > 3 && scorerExitingReaderException){
+                    throw new ExitableDirectoryReader.ExitingReaderException("The request took too long to iterate over doc values");
+                }
                 return new FieldValueFeatureScorer(this, context,
                         DocIdSetIterator.all(DocIdSetIterator.NO_MORE_DOCS));
             }
@@ -196,9 +248,11 @@ public class TestLTRTimeAllowed extends SolrTestCase {
                     }
                     final Number number = indexableField.numericValue();
                     if (number != null) {
-//                        if (number.floatValue() == 3) {
-//                            throw new ExitableDirectoryReader.ExitingReaderException("The request took too long to iterate over doc values");
-//                        }
+                        // An ExitingReaderException occurs during the mock score process
+                        // The function calculation loads the term during the Score procedure, causing an ExitingReaderException to occur
+                        if (number.floatValue() == 3 && scoreExitingReaderException) {
+                            throw new ExitableDirectoryReader.ExitingReaderException("The request took too long to iterate over doc values");
+                        }
                         return number.floatValue();
                     }
                     return getDefaultValue();
