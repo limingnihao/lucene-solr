@@ -176,7 +176,9 @@ public class LTRRescorer extends Rescorer {
         try{
           scorer = modelWeight.scorer(readerContext);
         } catch (ExitableDirectoryReader.ExitingReaderException ex) {
-          log.warn("rescorer timeout: {}", ex.getMessage());
+          if(log.isWarnEnabled()){
+            log.warn("rescorer create scorer timeout: {}", ex.getMessage());
+          }
           break;
         }
       }
@@ -197,7 +199,9 @@ public class LTRRescorer extends Rescorer {
       try{
         hit.score = scorer.score();
       } catch(ExitableDirectoryReader.ExitingReaderException ex){
-        log.warn("rescorer timeout: {}", ex.getMessage());
+        if(log.isWarnEnabled()){
+          log.warn("rescorer score timeout: {}", ex.getMessage());
+        }
         break;
       }
       if (hitUpto < topN) {
