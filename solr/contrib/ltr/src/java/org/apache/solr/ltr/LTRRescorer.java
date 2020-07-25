@@ -16,26 +16,16 @@
  */
 package org.apache.solr.ltr;
 
-import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-
 import org.apache.lucene.index.ExitableDirectoryReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
-import org.apache.lucene.search.Explanation;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Rescorer;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.TotalHits;
-import org.apache.lucene.search.Weight;
+import org.apache.lucene.search.*;
 import org.apache.solr.search.SolrIndexSearcher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 
 
 /**
@@ -46,7 +36,6 @@ import org.slf4j.LoggerFactory;
  * */
 public class LTRRescorer extends Rescorer {
 
-  private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
   LTRScoringQuery scoringQuery;
   public LTRRescorer(LTRScoringQuery scoringQuery) {
     this.scoringQuery = scoringQuery;
@@ -176,9 +165,6 @@ public class LTRRescorer extends Rescorer {
         try{
           scorer = modelWeight.scorer(readerContext);
         } catch (ExitableDirectoryReader.ExitingReaderException ex) {
-          if(log.isWarnEnabled()){
-            log.warn("rescorer create scorer timeout: {}", ex.getMessage());
-          }
           break;
         }
       }
@@ -199,9 +185,6 @@ public class LTRRescorer extends Rescorer {
       try{
         hit.score = scorer.score();
       } catch(ExitableDirectoryReader.ExitingReaderException ex){
-        if(log.isWarnEnabled()){
-          log.warn("rescorer score timeout: {}", ex.getMessage());
-        }
         break;
       }
       if (hitUpto < topN) {
