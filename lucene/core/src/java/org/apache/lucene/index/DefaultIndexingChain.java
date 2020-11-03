@@ -914,10 +914,10 @@ final class DefaultIndexingChain extends DocConsumer {
               
           int startOffset = invertState.offset + invertState.offsetAttribute.startOffset();
           int endOffset = invertState.offset + invertState.offsetAttribute.endOffset();
-          if (startOffset < invertState.lastStartOffset || endOffset < startOffset) {
-            throw new IllegalArgumentException("startOffset must be non-negative, and endOffset must be >= startOffset, and offsets must not go backwards "
-                                               + "startOffset=" + startOffset + ",endOffset=" + endOffset + ",lastStartOffset=" + invertState.lastStartOffset + " for field '" + field.name() + "'");
-          }
+//          if (startOffset < invertState.lastStartOffset || endOffset < startOffset) {
+//            throw new IllegalArgumentException("startOffset must be non-negative, and endOffset must be >= startOffset, and offsets must not go backwards "
+//                                               + "startOffset=" + startOffset + ",endOffset=" + endOffset + ",lastStartOffset=" + invertState.lastStartOffset + " for field '" + field.name() + "'");
+//          }
           invertState.lastStartOffset = startOffset;
 
           try {
