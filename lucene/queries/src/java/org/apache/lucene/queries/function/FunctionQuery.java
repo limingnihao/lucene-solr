@@ -122,12 +122,13 @@ public class FunctionQuery extends Query {
 
     @Override
     public float score() throws IOException {
-      float val = vals.floatVal(docID());
-      if (val >= 0 == false) { // this covers NaN as well since comparisons with NaN return false
-        return 0;
-      } else {
-        return boost * val;
-      }
+//      float val = vals.floatVal(docID());
+//      if (val >= 0 == false) { // this covers NaN as well since comparisons with NaN return false
+//        return 0;
+//      } else {
+//        return boost * val;
+//      }
+      return boost * vals.floatVal(docID());
     }
 
     @Override
